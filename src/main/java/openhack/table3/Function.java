@@ -5,6 +5,16 @@ import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
 import com.github.t9t.minecraftrconclient.RconClient;
 
+import io.kubernetes.client.ApiClient;
+import io.kubernetes.client.ApiException;
+import io.kubernetes.client.Configuration;
+import io.kubernetes.client.apis.CoreV1Api;
+import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.models.V1PodList;
+import io.kubernetes.client.util.Config;
+
+import java.io.IOException;
+
 /**
  * Azure Functions with HTTP Trigger.
  */
@@ -40,6 +50,28 @@ public class Function {
         }
         catch (Exception e) {
             return request.createResponse(404, "Error " + e);
+        }
+    }
+
+    @FunctionName("servers")
+    public HttpResponseMessage<String> servers(
+            @HttpTrigger(name = "req", methods = {"get", "post"}, authLevel = AuthorizationLevel.ANONYMOUS) HttpRequestMessage<Optional<String>> request,
+            final ExecutionContext context) {
+        context.getLogger().info("Java HTTP trigger processed a request.");
+
+        // Parse query parameter
+        String query = request.getQueryParameters().get("server");
+        String server = request.getBody().orElse(query);
+
+        if (server == null) {
+            ApiClient client = Config.defaultClient();
+            Configuration.setDefaultApiClient(client);
+
+            CoreV1Api api = new CoreV1Api();
+            V1PodList list = api.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
+            for (V1Pod item : list.getItems()) {
+                System.out.println(item.getMetadata().getName());
+            }
         }
     }
 }

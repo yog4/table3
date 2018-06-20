@@ -32,15 +32,41 @@ public class Function {
 
         // Parse query parameter
         String query = request.getQueryParameters().get("command");
+        String server = request.getQueryParameters().get("server");
+        String portStr = request.getQueryParameters().get("port");
+        String password = request.getQueryParameters().get("password");
         String command = request.getBody().orElse(query);
+        context.getLogger().info("Input for command = " + command);
+        context.getLogger().info("Input for server = " + server);
+        context.getLogger().info("Input for port = " + portStr);
+        context.getLogger().info("Input for password = " + password);
+
+        int port = 25575;
 
         if (command == null) {
             command = "list";
         }
 
-        String server = "";
-        int port = 25575;
-        String password = "";
+        if (server == null) {
+            return request.createResponse(404, "Error: server not specified");
+        }
+
+        if (portStr == null) {
+            port = 25575;
+        }
+        else {
+            try {
+                port = Integer.parseInt(portStr);
+            }
+            catch (Exception e) {
+                return request.createResponse(404, "Error: port must be a number");
+            }
+        }
+        context.getLogger().info("Using port = " + port);
+
+        if (password == null) {
+            return request.createResponse(404, "Error: password not specified");
+        }
 
         try {
             RconClient client = RconClient.open(server, port, password);
@@ -53,25 +79,4 @@ public class Function {
         }
     }
 
-    @FunctionName("servers")
-    public HttpResponseMessage<String> servers(
-            @HttpTrigger(name = "req", methods = {"get", "post"}, authLevel = AuthorizationLevel.ANONYMOUS) HttpRequestMessage<Optional<String>> request,
-            final ExecutionContext context) {
-        context.getLogger().info("Java HTTP trigger processed a request.");
-
-        // Parse query parameter
-        String query = request.getQueryParameters().get("server");
-        String server = request.getBody().orElse(query);
-
-        if (server == null) {
-            ApiClient client = Config.defaultClient();
-            Configuration.setDefaultApiClient(client);
-
-            CoreV1Api api = new CoreV1Api();
-            V1PodList list = api.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
-            for (V1Pod item : list.getItems()) {
-                System.out.println(item.getMetadata().getName());
-            }
-        }
-    }
 }
